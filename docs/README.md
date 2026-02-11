@@ -27,11 +27,45 @@ Agente diário de vagas (Python-first) com human-in-the-loop para descoberta, pr
    jobagent artifacts <job_id>
    ```
 
+## How tailoring v2 works
+- Extraímos **job anchors** (skills, responsabilidades, must-have/nice-to-have, missão).
+- Selecionamos bullets do `bullet_bank` do perfil de forma contextual.
+- Reordenamos experiências por relevância.
+- Geramos novos artifacts: `match_analysis_<job_id>.md` e `project_prompt_<job_id>.md`.
+- Quando houver gap, adicionamos seção **Plano de Evolução** sem inventar experiência.
+
+## How score breakdown works
+O score é composto por:
+- `skill_match_score`
+- `seniority_score`
+- `location_score`
+- `keyword_density_score`
+- `red_flag_penalty`
+
+A CLI mostra o breakdown:
+```text
+score: 84
+[skills +30 | seniority +20 | location +15 | keywords +19 | red_flags -0]
+```
+
+## How to use project launcher
+Depois de um `jobagent run`, cada vaga ganha um artifact:
+- `artifacts/project_prompt_<job_id>.md`
+
+Esse arquivo traz mini-projeto estratégico com:
+- problema
+- stack sugerida
+- user stories
+- estrutura de pastas
+- prompt pronto para Codex
+
 ## Comandos CLI
 - `jobagent run --sources rss,manual --limit 30`
 - `jobagent list --top 20`
 - `jobagent artifacts <job_id>`
 - `jobagent approve <approval_id> --yes/--no`
+- `jobagent export --format csv --min-score 70`
+- `jobagent followups`
 
 ## API (FastAPI)
 ```bash

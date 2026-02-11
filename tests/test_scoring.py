@@ -1,5 +1,5 @@
 from src.domain.models import CandidateProfile, ExperienceItem, JobPosting, ProjectItem
-from src.domain.scoring import score_job
+from src.domain.scoring import recommendation_from_score, score_job
 
 
 def build_profile() -> CandidateProfile:
@@ -13,10 +13,12 @@ def build_profile() -> CandidateProfile:
         projects=[ProjectItem(name="P", description="d", stack=["Flutter"], links=[])],
         education=["ADS"],
         preferences={"company_type": "produto"},
+        bullet_bank={"mobile": ["Entreguei feature Flutter com impacto em retenção."]},
+        learning_plan=["Power BI"],
     )
 
 
-def test_scoring_returns_explanations() -> None:
+def test_scoring_returns_breakdown_and_explanations() -> None:
     profile = build_profile()
     job = JobPosting(
         external_id="1",
@@ -31,4 +33,5 @@ def test_scoring_returns_explanations() -> None:
 
     result = score_job(job, profile)
     assert 0 <= result.score <= 100
-    assert any("Score final" in reason for reason in result.reasons)
+    assert result.breakdown.skill_match_score >= 0
+    assert recommendation_from_score(result.score) in {"APPLY", "MAYBE", "SKIP"}

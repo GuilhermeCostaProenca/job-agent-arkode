@@ -6,7 +6,7 @@
     "title": "Pessoa Desenvolvedora Mobile Júnior",
     "company": "Acme Tech",
     "location": "São Paulo remoto",
-    "description": "Buscamos pessoa com Kotlin, Flutter e SQL para produto mobile. Experiência com dashboards é diferencial.",
+    "description": "Requisitos\n- Kotlin\n- Flutter\n- SQL\nResponsabilidades\n- Construir features mobile\nDiferenciais\n- Dashboard em Power BI",
     "requirements": ["Kotlin", "Flutter", "SQL", "Comunicação com time de produto"]
   },
   {
@@ -16,7 +16,7 @@
     "title": "Estágio em Dados",
     "company": "Insight Labs",
     "location": "Remoto",
-    "description": "Estágio em dados com foco em Power BI e SQL. Apoio ao time de analytics.",
+    "description": "Requisitos\n- Power BI\n- SQL\nResponsabilidades\n- Apoiar analytics\nAbout\n- Cultura de aprendizado contínuo",
     "requirements": ["Power BI", "SQL", "Vontade de aprender"]
   }
 ]

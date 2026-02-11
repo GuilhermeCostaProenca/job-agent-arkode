@@ -36,3 +36,17 @@ preferences:
   no_go: "Consultorias com escala excessiva de horas extras"
   min_salary: 2500
   company_type: "Produto ou startup em crescimento"
+bullet_bank:
+  mobile:
+    - "Desenvolvi e mantive app Flutter com foco em usabilidade e performance, reduzindo falhas em produção."
+  backend:
+    - "Implementei integrações de API com Java e SQL, melhorando consistência dos dados para o time."
+  data:
+    - "Construí dashboard em Power BI + SQL para monitoramento de KPIs com atualização recorrente."
+  automation:
+    - "Automatizei rotina operacional com scripts e padronização de fluxo, reduzindo tempo manual."
+  leadership:
+    - "Facilitei alinhamento técnico entre pares para priorização e entrega incremental."
+learning_plan:
+  - "Aprofundar arquitetura backend com FastAPI"
+  - "Evoluir testes automatizados e observabilidade"

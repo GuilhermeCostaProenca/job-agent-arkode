@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+import json
+from datetime import UTC, date, datetime
+from typing import Any, cast
 
 from sqlmodel import Field, Session, SQLModel, select
 
-from src.domain.models import ApprovalStatus, DBApproval, JobStatus
+from src.domain.models import ApplicationRecord, ApprovalStatus, DBApproval, JobStatus
 
 
 class JobTable(SQLModel, table=True):
@@ -19,6 +21,9 @@ class JobTable(SQLModel, table=True):
     description: str
     score: int = 0
     score_reasons: str = ""
+    anchors_json: str = "{}"
+    score_breakdown_json: str = "{}"
+    recommendation: str = "MAYBE"
     status: str = JobStatus.NEW.value
 
 
@@ -45,6 +50,15 @@ class ApprovalTable(SQLModel, table=True):
     status: str = ApprovalStatus.PENDING.value
     reason: str
     payload: str
+
+
+class ApplicationTable(SQLModel, table=True):
+    id: str = Field(primary_key=True)
+    job_id: str
+    status: str = "pending"
+    follow_up_date: date | None = None
+    recommendation: str = "MAYBE"
+    link: str = ""
 
 
 class TrackerRepository:
@@ -98,6 +112,16 @@ class TrackerRepository:
         )
         return list(self.session.exec(statement))
 
+    def list_jobs_all(self, min_score: int = 0) -> list[JobTable]:
+        statement = (
+            select(JobTable)
+            .where(JobTable.score >= min_score)
+            .order_by(
+                JobTable.score.desc()  # type: ignore[attr-defined]
+            )
+        )
+        return list(self.session.exec(statement))
+
     def get_job(self, job_id: str) -> JobTable | None:
         return self.session.get(JobTable, job_id)
 
@@ -141,3 +165,39 @@ class TrackerRepository:
 
     def get_approval(self, approval_id: str) -> ApprovalTable | None:
         return self.session.get(ApprovalTable, approval_id)
+
+    def upsert_application(self, record: ApplicationRecord, link: str) -> ApplicationTable:
+        row = self.session.get(ApplicationTable, record.id)
+        if row is None:
+            row = ApplicationTable(
+                id=record.id,
+                job_id=record.job_id,
+                status=record.status,
+                follow_up_date=record.follow_up_date,
+                recommendation=record.recommendation,
+                link=link,
+            )
+        else:
+            row.status = record.status
+            row.follow_up_date = record.follow_up_date
+            row.recommendation = record.recommendation
+            row.link = link
+        self.session.add(row)
+        self.session.commit()
+        self.session.refresh(row)
+        return row
+
+    def list_due_followups(self, until: date) -> list[ApplicationTable]:
+        follow_col = cast(Any, ApplicationTable.follow_up_date)
+        statement = (
+            select(ApplicationTable)
+            .where(follow_col.is_not(None))
+            .where(follow_col <= until)
+            .where(ApplicationTable.status != "rejected")
+            .order_by(follow_col.asc())
+        )
+        return list(self.session.exec(statement))
+
+    @staticmethod
+    def parse_json(value: str) -> dict[str, object]:
+        return json.loads(value) if value else {}

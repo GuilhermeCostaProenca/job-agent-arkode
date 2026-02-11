@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from enum import Enum
 
 from pydantic import BaseModel, Field
@@ -43,6 +43,26 @@ class CandidateProfile(BaseModel):
     projects: list[ProjectItem]
     education: list[str]
     preferences: dict[str, str | int | float | bool]
+    bullet_bank: dict[str, list[str]] = Field(default_factory=dict)
+    learning_plan: list[str] = Field(default_factory=list)
+
+
+class JobAnchors(BaseModel):
+    top_skills: list[str] = Field(default_factory=list)
+    responsibilities: list[str] = Field(default_factory=list)
+    tools: list[str] = Field(default_factory=list)
+    soft_keywords: list[str] = Field(default_factory=list)
+    must_have: list[str] = Field(default_factory=list)
+    nice_to_have: list[str] = Field(default_factory=list)
+    mission_keywords: list[str] = Field(default_factory=list)
+
+
+class ScoreBreakdown(BaseModel):
+    skill_match_score: int
+    seniority_score: int
+    location_score: int
+    keyword_density_score: int
+    red_flag_penalty: int
 
 
 class JobPosting(BaseModel):
@@ -57,11 +77,16 @@ class JobPosting(BaseModel):
     posted_at: datetime | None = None
     score: int = 0
     score_reasons: list[str] = Field(default_factory=list)
+    anchors: JobAnchors = Field(default_factory=JobAnchors)
+    score_breakdown: ScoreBreakdown | None = None
 
 
 class ScoringResult(BaseModel):
     score: int
     reasons: list[str]
+    breakdown: ScoreBreakdown
+    top_matched_terms: list[str] = Field(default_factory=list)
+    gaps: list[str] = Field(default_factory=list)
 
 
 class ArtifactBundle(BaseModel):
@@ -70,6 +95,8 @@ class ArtifactBundle(BaseModel):
     dm_path: str
     email_path: str
     checklist_path: str
+    match_analysis_path: str
+    project_prompt_path: str
 
 
 class RunSummary(BaseModel):
@@ -116,3 +143,11 @@ class DBApproval(SQLModel):
     status: str = ApprovalStatus.PENDING.value
     reason: str
     payload: str
+
+
+class ApplicationRecord(SQLModel):
+    id: str
+    job_id: str
+    status: str = "pending"
+    follow_up_date: date | None = None
+    recommendation: str = "MAYBE"

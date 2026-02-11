@@ -1,3 +1,4 @@
+import hashlib
 from datetime import UTC, datetime
 from uuid import uuid4
 
@@ -7,6 +8,7 @@ def generate_run_id(prefix: str = "run") -> str:
     return f"{prefix}_{ts}_{uuid4().hex[:8]}"
 
 
-def generate_job_id(company: str, title: str) -> str:
-    compact = f"{company}-{title}".lower().replace(" ", "-")
-    return f"job_{compact[:40]}_{uuid4().hex[:6]}"
+def generate_job_id(source: str, external_id: str, company: str, title: str) -> str:
+    base = f"{source}|{external_id}|{company}|{title}".lower()
+    digest = hashlib.sha1(base.encode("utf-8")).hexdigest()[:14]
+    return f"job_{digest}"

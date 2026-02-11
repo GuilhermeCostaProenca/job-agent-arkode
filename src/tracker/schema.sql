@@ -1,6 +1,7 @@
 -- SQLModel handles DDL creation in MVP.
--- This file documents logical tables:
--- jobs(id, run_id, external_id, source, url, title, company, location, description, score, score_reasons, status)
+-- jobs(id, run_id, external_id, source, url, title, company, location, description, score,
+--      score_reasons, anchors_json, score_breakdown_json, recommendation, status)
 -- runs(id, started_at, completed_at, status, jobs_collected)
 -- artifacts(id, run_id, job_id, kind, path)
 -- approvals(id, run_id, job_id, status, reason, payload)
+-- applications(id, job_id, status, follow_up_date, recommendation, link)
