@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///jobagent.db"
     artifacts_dir: Path = Path("artifacts")
     profile_path: Path = Path("data/profile.yaml")
+    profile_dynamic_path: Path = Path("data/profile_dynamic.json")
     daily_cron: str = "0 8 * * *"
     autopilot_enabled: bool = False
     max_jobs_per_run: int = 30
@@ -20,6 +21,7 @@ class Settings(BaseSettings):
     smtp_port: int = 587
     smtp_sender: str | None = None
     run_id_prefix: str = Field(default="run")
+    user_id: str = "default"
 
 
 @lru_cache(maxsize=1)

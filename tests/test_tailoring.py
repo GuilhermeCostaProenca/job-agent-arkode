@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from src.domain.anchors import extract_job_anchors
@@ -26,6 +27,11 @@ def build_profile() -> CandidateProfile:
 
 
 def test_tailoring_generates_artifacts(tmp_path: Path) -> None:
+    dynamic = tmp_path / "profile_dynamic.json"
+    dynamic.write_text(
+        json.dumps({"top_skills_inferred": ["flutter"], "preferred_locations": ["remote"]}),
+        encoding="utf-8",
+    )
     profile = build_profile()
     job = JobPosting(
         external_id="job-1",
@@ -40,7 +46,7 @@ def test_tailoring_generates_artifacts(tmp_path: Path) -> None:
     anchors = extract_job_anchors(job)
     scoring = score_job(job, profile)
 
-    bundle = build_artifacts(job, profile, tmp_path, anchors, scoring)
+    bundle = build_artifacts(job, profile, tmp_path, anchors, scoring, dynamic)
     assert Path(bundle.resume_path).exists()
     assert len(bundle.cover_paths) == 3
     assert Path(bundle.checklist_path).exists()

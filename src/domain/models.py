@@ -87,6 +87,7 @@ class ScoringResult(BaseModel):
     breakdown: ScoreBreakdown
     top_matched_terms: list[str] = Field(default_factory=list)
     gaps: list[str] = Field(default_factory=list)
+    preference_adjustments: dict[str, float] = Field(default_factory=dict)
 
 
 class ArtifactBundle(BaseModel):
@@ -148,6 +149,6 @@ class DBApproval(SQLModel):
 class ApplicationRecord(SQLModel):
     id: str
     job_id: str
-    status: str = "pending"
+    status: str = "new"
     follow_up_date: date | None = None
     recommendation: str = "MAYBE"

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from jinja2 import Template
@@ -68,7 +69,7 @@ CHECKLIST_TEMPLATE = """# Checklist de aplicação - {{ job.company }} / {{ job.
 
 MATCH_ANALYSIS_TEMPLATE = """# Match Analysis - {{ job.company }} / {{ job.title }}
 
-## Score detalhado
+## Score detalhado (base)
 - score final: {{ score_result.score }}
 - skills: +{{ score_result.breakdown.skill_match_score }}
 - seniority: +{{ score_result.breakdown.seniority_score }}
@@ -76,12 +77,20 @@ MATCH_ANALYSIS_TEMPLATE = """# Match Analysis - {{ job.company }} / {{ job.title
 - keyword_density: +{{ score_result.breakdown.keyword_density_score }}
 - red_flags: -{{ score_result.breakdown.red_flag_penalty }}
 
+## Preference adjustments
+{% for key, value in score_result.preference_adjustments.items() %}- {{ key }}: {{ value }}
+{% endfor %}
+
 ## Top matched terms
 {% for term in score_result.top_matched_terms %}- {{ term }}
 {% endfor %}
 
 ## Gaps
 {% for gap in score_result.gaps %}- {{ gap }}
+{% endfor %}
+
+## O que o sistema aprendeu de você
+{% for item in learned_signals %}- {{ item }}
 {% endfor %}
 
 ## Recommendation
@@ -137,12 +146,25 @@ def _rank_experiences(profile: CandidateProfile, focus_terms: list[str]) -> list
     return [item[1] for item in ranking]
 
 
+def _learned_signals(dynamic_profile_path: Path) -> list[str]:
+    if not dynamic_profile_path.exists():
+        return ["Sem histórico suficiente ainda."]
+    data = json.loads(dynamic_profile_path.read_text(encoding="utf-8"))
+    top = data.get("top_skills_inferred", [])[:4]
+    locations = data.get("preferred_locations", [])[:2]
+    return [
+        f"Skills inferidas prioritárias: {', '.join(top) if top else 'n/a'}",
+        f"Locais preferidos: {', '.join(locations) if locations else 'n/a'}",
+    ]
+
+
 def build_artifacts(
     job: JobPosting,
     profile: CandidateProfile,
     artifacts_dir: Path,
     anchors: JobAnchors,
     score_result: ScoringResult,
+    dynamic_profile_path: Path,
 ) -> ArtifactBundle:
     reqs = job.requirements or [job.description]
     focus_skills = anchors.top_skills[:5] or profile.stacks[:5]
@@ -216,6 +238,7 @@ def build_artifacts(
         Template(MATCH_ANALYSIS_TEMPLATE).render(
             job=job,
             score_result=score_result,
+            learned_signals=_learned_signals(dynamic_profile_path),
             recommendation=recommendation_from_score(score_result.score),
         ),
     )

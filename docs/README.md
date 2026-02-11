@@ -17,7 +17,7 @@ Agente diário de vagas (Python-first) com human-in-the-loop para descoberta, pr
    ```bash
    nano data/profile.yaml
    ```
-4. **Rodar pipeline diário (MVP)**
+4. **Rodar pipeline diário**
    ```bash
    jobagent run --sources rss,manual --limit 30 --manual-url https://example.com/jobs/mobile-junior
    ```
@@ -27,63 +27,42 @@ Agente diário de vagas (Python-first) com human-in-the-loop para descoberta, pr
    jobagent artifacts <job_id>
    ```
 
-## How tailoring v2 works
-- Extraímos **job anchors** (skills, responsabilidades, must-have/nice-to-have, missão).
-- Selecionamos bullets do `bullet_bank` do perfil de forma contextual.
-- Reordenamos experiências por relevância.
-- Geramos novos artifacts: `match_analysis_<job_id>.md` e `project_prompt_<job_id>.md`.
-- Quando houver gap, adicionamos seção **Plano de Evolução** sem inventar experiência.
+## Learning loop (v0.3.0)
+- Eventos do usuário são gravados em `user_signals` (aprovação, rejeição, applied, replied, interview, offer, artifact_edit).
+- `preference_model` é atualizado incrementalmente com base nesses sinais.
+- O score final combina breakdown base + ajustes de preferência.
+- `profile_dynamic.json` é atualizado no fim do pipeline com sinais aprendidos.
 
-## How score breakdown works
-O score é composto por:
-- `skill_match_score`
-- `seniority_score`
-- `location_score`
-- `keyword_density_score`
-- `red_flag_penalty`
-
-A CLI mostra o breakdown:
-```text
-score: 84
-[skills +30 | seniority +20 | location +15 | keywords +19 | red_flags -0]
+## Como reverter aprendizado
+```bash
+jobagent preferences show
+jobagent preferences reset
 ```
 
-## How to use project launcher
-Depois de um `jobagent run`, cada vaga ganha um artifact:
-- `artifacts/project_prompt_<job_id>.md`
-
-Esse arquivo traz mini-projeto estratégico com:
-- problema
-- stack sugerida
-- user stories
-- estrutura de pastas
-- prompt pronto para Codex
-
-## Comandos CLI
-- `jobagent run --sources rss,manual --limit 30`
-- `jobagent list --top 20`
-- `jobagent artifacts <job_id>`
-- `jobagent approve <approval_id> --yes/--no`
-- `jobagent export --format csv --min-score 70`
-- `jobagent followups`
+## Comandos CLI novos
+- `jobagent reject <job_id> --reason "..."`
+- `jobagent applied <job_id>`
+- `jobagent replied <job_id> --channel email|linkedin|whatsapp`
+- `jobagent interview <job_id> --date YYYY-MM-DD --notes "..."`
+- `jobagent offer <job_id> --notes "..."`
+- `jobagent signal list --last 50`
+- `jobagent artifact-edit <job_id> --name cover --file path/to/final.txt`
+- `jobagent preferences show`
+- `jobagent preferences reset`
 
 ## API (FastAPI)
 ```bash
 uvicorn src.api.main:app --reload
 ```
 
-Endpoints principais:
-- `GET /jobs?status=new&min_score=70`
-- `GET /jobs/{id}`
-- `GET /runs`
-- `POST /approvals/{id}/approve`
-- `POST /approvals/{id}/reject`
+Novos endpoints:
+- `POST /signals`
+- `GET /signals?limit=50`
+- `POST /applications/{job_id}/status`
+- `POST /artifacts/{job_id}/edited`
 
-## Regras de segurança e conformidade
+## Segurança e conformidade
 - Sem bypass de captcha/2FA/login.
 - Sem disparo em massa de outreach.
 - Sem inventar experiência/skill.
 - Aprovação humana obrigatória para envio final.
-
-## Demo e2e com fixtures
-Use `fixtures/mock_jobs.json` para simular vagas e validar scoring/tailoring localmente via testes.

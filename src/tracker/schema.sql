@@ -1,7 +1,10 @@
 -- SQLModel handles DDL creation in MVP.
--- jobs(id, run_id, external_id, source, url, title, company, location, description, score,
+-- jobs(id, user_id, run_id, external_id, source, url, title, company, location, description, score,
 --      score_reasons, anchors_json, score_breakdown_json, recommendation, status)
--- runs(id, started_at, completed_at, status, jobs_collected)
--- artifacts(id, run_id, job_id, kind, path)
--- approvals(id, run_id, job_id, status, reason, payload)
--- applications(id, job_id, status, follow_up_date, recommendation, link)
+-- runs(id, user_id, started_at, completed_at, status, jobs_collected)
+-- artifacts(id, user_id, run_id, job_id, kind, path)
+-- approvals(id, user_id, run_id, job_id, status, reason, payload)
+-- applications(id, user_id, job_id, status, follow_up_date, notes, recommendation, link, created_at, updated_at)
+-- user_signals(id, user_id, run_id, job_id, signal_type, payload_json, created_at)
+-- preference_model(id, user_id, weights_json, updated_at)
+-- writing_deltas(id, user_id, job_id, artifact_name, original_text, final_text, delta_json, created_at)

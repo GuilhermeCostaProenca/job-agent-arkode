@@ -1,3 +1,3 @@
-from src.api.routes import approvals, artifacts, jobs, runs
+from src.api.routes import applications, approvals, artifacts, jobs, runs, signals
 
-__all__ = ["jobs", "runs", "approvals", "artifacts"]
+__all__ = ["jobs", "runs", "approvals", "artifacts", "signals", "applications"]
