@@ -26,6 +26,17 @@ def list_artifacts(job_id: str, session: Session = Depends(get_db_session)) -> l
     return TrackerRepository(session).list_artifacts(job_id, user_id=settings.user_id)
 
 
+@router.get("/{job_id}/content")
+def get_artifact_content(job_id: str, kind: str, session: Session = Depends(get_db_session)) -> Any:
+    settings = get_settings()
+    repo = TrackerRepository(session)
+    artifact = repo.find_artifact(job_id, kind, user_id=settings.user_id)
+    if artifact is None:
+        return {"detail": "artifact not found"}
+    content = Path(artifact.path).read_text(encoding="utf-8")
+    return {"kind": artifact.kind, "path": artifact.path, "content": content}
+
+
 @router.post("/{job_id}/edited")
 def artifact_edited(
     job_id: str,

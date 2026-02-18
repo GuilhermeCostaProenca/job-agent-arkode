@@ -8,3 +8,4 @@
 -- user_signals(id, user_id, run_id, job_id, signal_type, payload_json, created_at)
 -- preference_model(id, user_id, weights_json, updated_at)
 -- writing_deltas(id, user_id, job_id, artifact_name, original_text, final_text, delta_json, created_at)
+-- feed_items(id, user_id, source, url, text, is_hiring, confidence, created_at)

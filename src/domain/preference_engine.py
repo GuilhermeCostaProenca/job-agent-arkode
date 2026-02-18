@@ -11,8 +11,19 @@ DEFAULT_WEIGHTS: dict[str, Any] = {
     "seniority": {"intern": 1.0, "junior": 1.0, "mid": -0.5, "senior": -1.0},
     "company_type": {"product": 1.0, "consulting": 0.2, "bodyshop": -0.8},
     "red_flags": {"unpaid": -2.0, "pj_abusive": -1.5, "support_disguised": -1.0},
+    "salary_bias": 0.0,
     "writing_style": {"directness": 0.0, "formality": 0.0, "confidence": 0.0},
     "last_processed_signal_id": "",
+}
+
+SIGNAL_MULTIPLIER = {
+    "offer": 5.0,
+    "interview": 3.0,
+    "replied": 2.0,
+    "applied": 1.5,
+    "approval": 1.0,
+    "artifact_edit": 1.0,
+    "rejection": -1.0,
 }
 
 
@@ -41,26 +52,21 @@ def update_preferences_from_signal(
     weights: dict[str, Any],
 ) -> dict[str, Any]:
     skills = weights.setdefault("skills", {})
-    delta = 0.05
-    if signal.signal_type in {"applied", "interview", "offer"}:
-        delta = 0.12
-    elif signal.signal_type in {"approval", "artifact_edit"}:
-        delta = 0.07
-    elif signal.signal_type in {"rejection"}:
-        delta = -0.1
+    base = 0.06
+    factor = float(SIGNAL_MULTIPLIER.get(signal.signal_type, 0.5))
+    delta = base * factor
 
     for skill in anchors.top_skills[:8]:
         current = float(skills.get(skill, 0.0))
         skills[skill] = _clamp(current + delta)
 
-    reason = (
-        str(signal.payload_json.get("reason", "")).lower()
-        if isinstance(signal.payload_json, dict)
-        else ""
-    )
+    payload = signal.payload_json if isinstance(signal.payload_json, dict) else {}
+    reason = str(payload.get("reason", "")).lower()
     locations = weights.setdefault("locations", {})
-    if "local" in reason or "presencial" in reason:
-        locations["onsite_far"] = _clamp(float(locations.get("onsite_far", -1.0)) - 0.2)
+    if reason in {"location_bad", "commute_too_far"}:
+        locations["onsite_far"] = _clamp(float(locations.get("onsite_far", -1.0)) - 0.4)
+    if reason == "salary_low":
+        weights["salary_bias"] = _clamp(float(weights.get("salary_bias", 0.0)) - 0.3)
 
     weights["last_processed_signal_id"] = signal.id
     return weights
@@ -76,6 +82,7 @@ def apply_preferences_to_score(
         "skills_pref": 0.0,
         "location_pref": 0.0,
         "seniority_pref": 0.0,
+        "salary_bias": float(weights.get("salary_bias", 0.0)),
     }
     skill_weights = weights.get("skills", {})
     for skill in anchors.top_skills[:6]:

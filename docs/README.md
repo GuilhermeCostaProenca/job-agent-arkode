@@ -1,68 +1,44 @@
 # job-agent-arkode
 
-Agente diário de vagas (Python-first) com human-in-the-loop para descoberta, priorização, personalização de candidatura e autopilot seguro até o ponto de envio.
+Agente diário de vagas com human-in-the-loop e aprendizado incremental.
 
-## Quickstart (5 minutos)
-1. **Criar ambiente e instalar deps**
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate
-   pip install -e .[dev]
-   ```
-2. **Configurar env**
-   ```bash
-   cp .env.example .env
-   ```
-3. **Revisar perfil**
-   ```bash
-   nano data/profile.yaml
-   ```
-4. **Rodar pipeline diário**
-   ```bash
-   jobagent run --sources rss,manual --limit 30 --manual-url https://example.com/jobs/mobile-junior
-   ```
-5. **Inspecionar resultados**
-   ```bash
-   jobagent list --top 20 --min-score 60
-   jobagent artifacts <job_id>
-   ```
+## v0.4.0 highlights
+- Taxonomia de motivos para approve/reject.
+- Estratégia de exploração 80/20 para evitar bolha.
+- Aprendizado ponderado por outcome (`replied/interview/offer`).
+- Feed Hunter para detectar hiring signals e gerar drafts de outreach.
 
-## Learning loop (v0.3.0)
-- Eventos do usuário são gravados em `user_signals` (aprovação, rejeição, applied, replied, interview, offer, artifact_edit).
-- `preference_model` é atualizado incrementalmente com base nesses sinais.
-- O score final combina breakdown base + ajustes de preferência.
-- `profile_dynamic.json` é atualizado no fim do pipeline com sinais aprendidos.
+## Reason taxonomy
+Approved:
+- like_company, like_role, good_growth, good_learning, good_stack_match
 
-## Como reverter aprendizado
-```bash
-jobagent preferences show
-jobagent preferences reset
-```
+Rejected:
+- stack_mismatch, seniority_too_high, salary_low, location_bad,
+  company_type_bad, description_generic, red_flag_pj, red_flag_unpaid,
+  support_disguised, commute_too_far
 
-## Comandos CLI novos
-- `jobagent reject <job_id> --reason "..."`
-- `jobagent applied <job_id>`
-- `jobagent replied <job_id> --channel email|linkedin|whatsapp`
-- `jobagent interview <job_id> --date YYYY-MM-DD --notes "..."`
-- `jobagent offer <job_id> --notes "..."`
-- `jobagent signal list --last 50`
-- `jobagent artifact-edit <job_id> --name cover --file path/to/final.txt`
-- `jobagent preferences show`
-- `jobagent preferences reset`
+## Exploration strategy (80/20)
+- 80% vagas de maior score.
+- 20% exploração com novidade (skill nova, empresa nova ou localização nova).
+- CLI: `jobagent list --explore`
 
-## API (FastAPI)
-```bash
-uvicorn src.api.main:app --reload
-```
+## Outcome-weighted learning
+Pesos por sinal:
+- offer +5x
+- interview +3x
+- replied +2x
+- applied +1.5x
+- approval +1x
+- rejected -1x
 
-Novos endpoints:
-- `POST /signals`
-- `GET /signals?limit=50`
-- `POST /applications/{job_id}/status`
-- `POST /artifacts/{job_id}/edited`
+## Feed Hunter
+- `jobagent feed add --url <...>`
+- `jobagent feed add --file feed.json`
+- `jobagent feed list --hiring-only`
+- API: `GET /feed?hiring_only=true`
+- API: `POST /feed/{id}/drafts`
 
-## Segurança e conformidade
-- Sem bypass de captcha/2FA/login.
-- Sem disparo em massa de outreach.
-- Sem inventar experiência/skill.
-- Aprovação humana obrigatória para envio final.
+## Segurança
+- Sem bypass de captcha/login/2FA.
+- Sem envio automático sem aprovação humana.
+- Sem inventar experiências/skills.

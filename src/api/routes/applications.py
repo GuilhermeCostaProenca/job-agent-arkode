@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends
@@ -44,3 +45,10 @@ def update_application_status(
         ),
     )
     return updated
+
+
+@router.get("/followups")
+def list_followups(session: Session = Depends(get_db_session)) -> list[Any]:
+    settings = get_settings()
+    today = datetime.now(UTC).date()
+    return TrackerRepository(session).list_due_followups(today, user_id=settings.user_id)

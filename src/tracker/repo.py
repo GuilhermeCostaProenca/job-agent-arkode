@@ -97,6 +97,17 @@ class WritingDeltaTable(SQLModel, table=True):
     created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
 
 
+class FeedItemTable(SQLModel, table=True):
+    id: str = Field(primary_key=True)
+    user_id: str = "default"
+    source: str
+    url: str
+    text: str
+    is_hiring: bool = False
+    confidence: float = 0.0
+    created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+
+
 class TrackerRepository:
     def __init__(self, session: Session):
         self.session = session
@@ -149,6 +160,45 @@ class TrackerRepository:
             .limit(limit)
         )
         return list(self.session.exec(statement))
+
+    def list_recommendations(
+        self,
+        min_score: int = 0,
+        limit: int = 20,
+        user_id: str = "default",
+        explore: bool = False,
+    ) -> list[dict[str, Any]]:
+        jobs = self.list_jobs(min_score=min_score, limit=200, user_id=user_id)
+        if not explore:
+            return [{"job": row, "is_exploration": False} for row in jobs[:limit]]
+
+        top_count = max(1, int(limit * 0.8))
+        explore_count = max(1, limit - top_count)
+
+        top_skills: list[str] = []
+        top_locations: set[str] = set()
+        for row in jobs[:top_count]:
+            anchors = self.parse_json(row.anchors_json)
+            top_skills.extend(anchors.get("top_skills", []))
+            top_locations.add(row.location.lower())
+        top_skills_set = set(top_skills)
+
+        selected_rows = jobs[:top_count]
+        selected = [{"job": row, "is_exploration": False} for row in selected_rows]
+        known_companies = {row.company.lower() for row in selected_rows}
+        exploration: list[dict[str, Any]] = []
+        for row in jobs[top_count:]:
+            anchors = self.parse_json(row.anchors_json)
+            skills = set(anchors.get("top_skills", []))
+            novel_skill = bool(skills - top_skills_set)
+            novel_location = row.location.lower() not in top_locations
+            novel_company = row.company.lower() not in known_companies
+            if row.score >= min_score and (novel_skill or novel_location or novel_company):
+                exploration.append({"job": row, "is_exploration": True})
+            if len(exploration) >= explore_count:
+                break
+
+        return (selected + exploration)[:limit]
 
     def list_jobs_all(self, min_score: int = 0, user_id: str = "default") -> list[JobTable]:
         statement = (
@@ -410,6 +460,44 @@ class TrackerRepository:
             summary[status] = summary.get(status, 0) + 1
         return summary
 
+    def create_feed_item(
+        self,
+        feed_id: str,
+        source: str,
+        url: str,
+        text: str,
+        is_hiring: bool,
+        confidence: float,
+        user_id: str = "default",
+    ) -> FeedItemTable:
+        row = FeedItemTable(
+            id=feed_id,
+            user_id=user_id,
+            source=source,
+            url=url,
+            text=text,
+            is_hiring=is_hiring,
+            confidence=confidence,
+        )
+        self.session.add(row)
+        self.session.commit()
+        self.session.refresh(row)
+        return row
+
+    def list_feed_items(
+        self, hiring_only: bool = False, user_id: str = "default"
+    ) -> list[FeedItemTable]:
+        statement = select(FeedItemTable).where(FeedItemTable.user_id == user_id)
+        if hiring_only:
+            hiring_col = cast(Any, FeedItemTable.is_hiring)
+            statement = statement.where(hiring_col.is_(True))
+        statement = statement.order_by(FeedItemTable.created_at.desc())  # type: ignore[attr-defined]
+        return list(self.session.exec(statement))
+
+    def get_feed_item(self, feed_id: str) -> FeedItemTable | None:
+        return self.session.get(FeedItemTable, feed_id)
+
     @staticmethod
-    def parse_json(value: str) -> dict[str, object]:
-        return json.loads(value) if value else {}
+    def parse_json(value: str) -> dict[str, Any]:
+        data = json.loads(value) if value else {}
+        return cast(dict[str, Any], data)

@@ -1,23 +1,24 @@
-# Arquitetura v0.3.0
+# Arquitetura v0.4.0
 
-## Fluxo diário
-1. Ingestão + normalização + dedupe.
-2. Extração de anchors da vaga.
-3. Scoring base explicável.
-4. Ajustes de preferência via learning loop.
-5. Tailoring v2 + artifacts estratégicos.
-6. Persistência de jobs/applications/signals/writing deltas.
-7. Atualização de `profile_dynamic.json`.
+## Core loop
+1. Ingest + normalize + dedupe.
+2. Anchors e scoring explicável.
+3. Ajustes por preference engine com aprendizado incremental.
+4. Recomendação com exploração controlada 80/20.
+5. Tailoring + artifacts + revisão humana.
 
-## Learning loop
-- `user_signals`: ledger de eventos do usuário.
-- `preference_model`: pesos adaptativos por skill/local/senioridade/estilo.
-- `writing_deltas`: captura de edição de artifacts para aprender estilo.
-- Processamento incremental via `last_processed_signal_id`.
+## Signals & reasons
+- `user_signals` guarda evento + payload_json (reason/notes/etc).
+- Taxonomia controlada melhora consistência de aprendizado.
+
+## Outcome-weighted learning
+- Modelo de preferências usa multiplicadores por resultado.
+- Sinais mais fortes (`offer/interview`) aceleram ajuste dos pesos.
+
+## Feed Hunter
+- `feed_items` armazena entradas manuais (URL/texto).
+- Detector de hiring signals classifica confiança e triggers.
+- Geração de drafts multi-canal em artifacts; envio continua humano.
 
 ## Multi-user ready
-Ainda single-user por padrão, porém tabelas principais incluem `user_id` com default `default`.
-Próximo passo para multi-tenant: auth + scoping de `user_id` por token/sessão.
-
-## Como resetar preferências
-CLI `jobagent preferences reset` reescreve `preference_model` para pesos padrão.
+- tabelas principais possuem `user_id` default `default`.
