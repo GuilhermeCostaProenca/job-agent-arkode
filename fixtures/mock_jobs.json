@@ -1,0 +1,22 @@
+[
+  {
+    "external_id": "mock-1",
+    "source": "rss",
+    "url": "https://example.com/jobs/mobile-junior",
+    "title": "Pessoa Desenvolvedora Mobile Júnior",
+    "company": "Acme Tech",
+    "location": "São Paulo remoto",
+    "description": "Requisitos\n- Kotlin\n- Flutter\n- SQL\nResponsabilidades\n- Construir features mobile\nDiferenciais\n- Dashboard em Power BI",
+    "requirements": ["Kotlin", "Flutter", "SQL", "Comunicação com time de produto"]
+  },
+  {
+    "external_id": "mock-2",
+    "source": "manual",
+    "url": "https://example.com/jobs/data-intern",
+    "title": "Estágio em Dados",
+    "company": "Insight Labs",
+    "location": "Remoto",
+    "description": "Requisitos\n- Power BI\n- SQL\nResponsabilidades\n- Apoiar analytics\nAbout\n- Cultura de aprendizado contínuo",
+    "requirements": ["Power BI", "SQL", "Vontade de aprender"]
+  }
+]

@@ -1,0 +1,52 @@
+name: "Candidato Exemplo"
+target_role: "Estágio/Júnior em Desenvolvimento"
+location: "SP/remoto"
+stacks:
+  - Flutter
+  - Kotlin
+  - Java
+  - SQL
+  - Power BI
+links:
+  github: "https://github.com/exemplo"
+  linkedin: "https://linkedin.com/in/exemplo"
+  portfolio: "https://exemplo.dev"
+experiences:
+  - company: "Startup Alpha"
+    period: "2023-2024"
+    bullets:
+      - "Automatizei processos internos e reduzi tempo de análise em 30%."
+      - "Desenvolvi funcionalidades mobile com Flutter com foco em performance."
+  - company: "Projeto Acadêmico Beta"
+    period: "2022-2023"
+    bullets:
+      - "Implementei dashboard em Power BI para monitoramento de KPIs."
+projects:
+  - name: "TaskFlow"
+    description: "Aplicativo mobile para gestão de tarefas com sincronização em nuvem."
+    stack: ["Flutter", "Firebase", "SQL"]
+    links: ["https://github.com/exemplo/taskflow"]
+  - name: "Sales Pulse"
+    description: "Dashboard de vendas com insights semanais para time comercial."
+    stack: ["Power BI", "SQL"]
+    links: ["https://github.com/exemplo/sales-pulse"]
+education:
+  - "Tecnólogo em Análise e Desenvolvimento de Sistemas"
+preferences:
+  no_go: "Consultorias com escala excessiva de horas extras"
+  min_salary: 2500
+  company_type: "Produto ou startup em crescimento"
+bullet_bank:
+  mobile:
+    - "Desenvolvi e mantive app Flutter com foco em usabilidade e performance, reduzindo falhas em produção."
+  backend:
+    - "Implementei integrações de API com Java e SQL, melhorando consistência dos dados para o time."
+  data:
+    - "Construí dashboard em Power BI + SQL para monitoramento de KPIs com atualização recorrente."
+  automation:
+    - "Automatizei rotina operacional com scripts e padronização de fluxo, reduzindo tempo manual."
+  leadership:
+    - "Facilitei alinhamento técnico entre pares para priorização e entrega incremental."
+learning_plan:
+  - "Aprofundar arquitetura backend com FastAPI"
+  - "Evoluir testes automatizados e observabilidade"
