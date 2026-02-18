@@ -25,3 +25,9 @@ Abrir: `http://localhost:3000`
 
 ## Env
 - `NEXT_PUBLIC_API_BASE=http://localhost:8000`
+
+## Troubleshooting
+Se aparecer `Error: fetch failed`:
+1. confirme que a API está ativa em `http://localhost:8000`;
+2. confira `apps/web/.env.local` com `NEXT_PUBLIC_API_BASE` apontando para a URL correta;
+3. reinicie o `pnpm dev` após alterar variáveis de ambiente.
