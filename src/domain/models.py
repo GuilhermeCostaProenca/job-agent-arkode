@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime
 from enum import Enum
+from typing import Any
 
 from pydantic import BaseModel, Field
 from sqlmodel import SQLModel
@@ -18,6 +19,29 @@ class ApprovalStatus(str, Enum):
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
+
+
+class ConnectorType(str, Enum):
+    LINKEDIN = "linkedin"
+    GUPY = "gupy"
+    GREENHOUSE = "greenhouse"
+    LEVER = "lever"
+    GENERIC_EXTERNAL = "generic_external"
+
+
+class ExecutionStatus(str, Enum):
+    QUEUED = "queued"
+    PREPARING = "preparing"
+    APPLYING = "applying"
+    PAUSED = "paused"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class ConfidenceLevel(str, Enum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
 
 
 class ExperienceItem(BaseModel):
@@ -45,6 +69,55 @@ class CandidateProfile(BaseModel):
     preferences: dict[str, str | int | float | bool]
     bullet_bank: dict[str, list[str]] = Field(default_factory=dict)
     learning_plan: list[str] = Field(default_factory=list)
+
+
+class ProfileEvidence(BaseModel):
+    id: str
+    kind: str
+    title: str
+    content: str
+    source: str = "manual"
+    created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+
+
+class ProfileSnapshot(BaseModel):
+    profile: CandidateProfile
+    evidences: list[ProfileEvidence] = Field(default_factory=list)
+
+
+class ProfileMemoryItem(BaseModel):
+    id: str
+    kind: str
+    title: str
+    content: str
+    confidence: float = 0.5
+    source: str = "derived"
+    updated_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+
+
+class ProfileConversationTurn(BaseModel):
+    id: str
+    role: str
+    message: str
+    created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+
+
+class ProfileConflict(BaseModel):
+    id: str
+    field: str
+    summary: str
+    recommended_action: str
+    values: list[str] = Field(default_factory=list)
+    sources: list[str] = Field(default_factory=list)
+    confidence: float = 0.5
+
+
+class ProfileBrainSnapshot(BaseModel):
+    profile: CandidateProfile
+    evidences: list[ProfileEvidence] = Field(default_factory=list)
+    memory_items: list[ProfileMemoryItem] = Field(default_factory=list)
+    conversation: list[ProfileConversationTurn] = Field(default_factory=list)
+    conflicts: list[ProfileConflict] = Field(default_factory=list)
 
 
 class JobAnchors(BaseModel):
@@ -88,6 +161,9 @@ class ScoringResult(BaseModel):
     top_matched_terms: list[str] = Field(default_factory=list)
     gaps: list[str] = Field(default_factory=list)
     preference_adjustments: dict[str, float] = Field(default_factory=dict)
+    fit_summary: str = ""
+    recommendation: str = "MAYBE"
+    llm_adjustment: int = 0
 
 
 class ArtifactBundle(BaseModel):
@@ -98,6 +174,39 @@ class ArtifactBundle(BaseModel):
     checklist_path: str
     match_analysis_path: str
     project_prompt_path: str
+
+
+class GeneratedAnswer(BaseModel):
+    question: str
+    answer: str
+    confidence: ConfidenceLevel = ConfidenceLevel.MEDIUM
+    rationale: str = ""
+
+
+class ApplicationArtifactRecord(BaseModel):
+    kind: str
+    label: str
+    path: str
+    content: str
+
+
+class ExecutionCheckpoint(BaseModel):
+    step: str
+    status: str
+    message: str
+    screenshot_path: str | None = None
+    snapshot_path: str | None = None
+    payload: dict[str, Any] = Field(default_factory=dict)
+
+
+class DashboardSnapshot(BaseModel):
+    jobs_discovered: int = 0
+    jobs_ready: int = 0
+    applications_total: int = 0
+    applications_submitted: int = 0
+    execution_paused: int = 0
+    inbox_updates: int = 0
+    platform_breakdown: dict[str, int] = Field(default_factory=dict)
 
 
 class RunSummary(BaseModel):

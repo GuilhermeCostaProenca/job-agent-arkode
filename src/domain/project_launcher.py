@@ -2,32 +2,26 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from src.core.utils import safe_filename_token
 from src.domain.models import CandidateProfile, JobAnchors, JobPosting
 
 
 def generate_project_prompt(job: JobPosting, anchors: JobAnchors, profile: CandidateProfile) -> str:
-    skills = anchors.top_skills[:4] or profile.stacks[:4]
-    project_name = f"SkillProof {job.company} {job.title}"[:80]
-    stack = ", ".join(skills)
-    stories = "\n".join(
-        [
-            "- Como recrutador, quero ver evidências práticas das skills-chave.",
-            "- Como usuário, quero fluxo claro de ponta a ponta com dados reais/mock.",
-            "- Como time técnico, quero README com setup e testes.",
-        ]
-    )
     return (
-        f"# Mini Projeto: {project_name}\n\n"
-        "## Problema que resolve\n"
-        f"Demonstrar aderência prática à vaga {job.title} ({job.company}).\n\n"
-        f"## Stack sugerida\n{stack}\n\n"
-        f"## User stories\n{stories}\n\n"
+        f"# Project prompt for {job.title}\n\n"
+        f"Company: {job.company}\n"
+        f"Location: {job.location}\n"
+        f"Top skills: {', '.join(anchors.top_skills[:8])}\n\n"
+        f"Build a concrete portfolio-ready project that proves fit for {profile.target_role} roles.\n"
+        f"Use stacks close to: {', '.join(profile.stacks[:6])}\n\n"
+        "## User stories\n"
+        "- Como recrutador, quero ver um projeto que demonstre aderencia real a vaga.\n"
+        "- Como avaliador tecnico, quero enxergar estrutura, clareza e criterio de entrega.\n\n"
         "## Estrutura de pastas\n"
-        "- src/\n- tests/\n- docs/\n- README.md\n\n"
-        "## Prompt pronto para Codex\n"
-        f"Construa um mini projeto em {stack} que simule um cenário real da vaga {job.title}. "
-        "Inclua API/fluxo principal, testes automatizados, lint, "
-        "documentação e instruções de execução."
+        "- app/\n"
+        "- domain/\n"
+        "- infra/\n"
+        "- tests/\n"
     )
 
 
@@ -37,7 +31,8 @@ def write_project_prompt(
     anchors: JobAnchors,
     profile: CandidateProfile,
 ) -> str:
-    path = artifacts_dir / f"project_prompt_{job.external_id}.md"
+    token = safe_filename_token(job.external_id)
+    path = artifacts_dir / f"project_prompt_{token}.md"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(generate_project_prompt(job, anchors, profile), encoding="utf-8")
     return str(path)

@@ -1,4 +1,20 @@
+.venv/
+.pytest_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.env
+*.db
+.vscode/
+artifacts/
+data/profile_dynamic.json
 
-# web frontend
+apps/web/.env.local
 apps/web/node_modules/
 apps/web/.next/
+apps/web/tsconfig.tsbuildinfo
+
+output/
+exports/

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.core.utils import normalize_text
+from src.core.utils import tokenize_text
 from src.domain.models import CandidateProfile, JobPosting, ScoreBreakdown, ScoringResult
 
 
@@ -14,8 +14,8 @@ def recommendation_from_score(score: int) -> str:
 
 def score_job(job: JobPosting, profile: CandidateProfile) -> ScoringResult:
     reasons: list[str] = []
-    desc = normalize_text(job.description)
-    req_text = normalize_text(" ".join(job.requirements))
+    desc = tokenize_text(job.description)
+    req_text = tokenize_text(" ".join(job.requirements))
 
     profile_skills = {skill.lower() for skill in profile.stacks}
     hits = sorted(skill for skill in profile_skills if skill in desc or skill in req_text)
@@ -80,4 +80,7 @@ def score_job(job: JobPosting, profile: CandidateProfile) -> ScoringResult:
         breakdown=breakdown,
         top_matched_terms=hits,
         gaps=gaps,
+        fit_summary=f"Baseline score for {job.title} at {job.company} based on skill overlap, seniority, location and keyword match.",
+        recommendation=recommendation_from_score(score),
+        llm_adjustment=0,
     )

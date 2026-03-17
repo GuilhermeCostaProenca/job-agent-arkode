@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlmodel import Session
 
@@ -26,80 +26,48 @@ def list_jobs(
     session: Session = Depends(get_db_session),
 ) -> list[Any]:
     settings = get_settings()
+    repo = TrackerRepository(session)
     if explore:
-        rows = TrackerRepository(session).list_recommendations(
-            min_score=min_score,
-            user_id=settings.user_id,
-            explore=True,
-        )
+        rows = repo.list_recommendations(min_score=min_score, user_id=settings.user_id, explore=True)
         return [{"job": item["job"], "is_exploration": item["is_exploration"]} for item in rows]
-
-    return TrackerRepository(session).list_jobs(
-        min_score=min_score,
-        status=status,
-        user_id=settings.user_id,
-    )
+    return repo.list_jobs(min_score=min_score, status=status, user_id=settings.user_id)
 
 
 @router.get("/{job_id}")
 def get_job(job_id: str, session: Session = Depends(get_db_session)) -> Any:
     job = TrackerRepository(session).get_job(job_id)
-    return job or {"detail": "job not found"}
+    if job is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="job not found")
+    return job
 
 
 @router.post("/{job_id}/approve")
-def approve_job(
-    job_id: str,
-    payload: DecisionInput,
-    session: Session = Depends(get_db_session),
-) -> Any:
+def approve_job(job_id: str, payload: DecisionInput, session: Session = Depends(get_db_session)) -> Any:
     if payload.reason not in APPROVED_REASONS:
-        return {"detail": "invalid approve reason"}
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid approve reason")
     settings = get_settings()
     repo = TrackerRepository(session)
-    row = repo.update_application_status(
-        job_id,
-        "approved",
-        notes=payload.notes,
-        user_id=settings.user_id,
-    )
+    row = repo.update_application_status(job_id, "approved", notes=payload.notes, user_id=settings.user_id)
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="application not found")
     record_signal(
         repo,
-        Signal(
-            signal_type="approval",
-            job_id=job_id,
-            payload={"reason": payload.reason, "notes": payload.notes},
-            run_id="api",
-            user_id=settings.user_id,
-        ),
+        Signal(signal_type="approval", job_id=job_id, payload={"reason": payload.reason, "notes": payload.notes}, run_id="api", user_id=settings.user_id),
     )
-    return row or {"detail": "application not found"}
+    return row
 
 
 @router.post("/{job_id}/reject")
-def reject_job(
-    job_id: str,
-    payload: DecisionInput,
-    session: Session = Depends(get_db_session),
-) -> Any:
+def reject_job(job_id: str, payload: DecisionInput, session: Session = Depends(get_db_session)) -> Any:
     if payload.reason not in REJECTED_REASONS:
-        return {"detail": "invalid reject reason"}
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid reject reason")
     settings = get_settings()
     repo = TrackerRepository(session)
-    row = repo.update_application_status(
-        job_id,
-        "rejected",
-        notes=payload.notes,
-        user_id=settings.user_id,
-    )
+    row = repo.update_application_status(job_id, "rejected", notes=payload.notes, user_id=settings.user_id)
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="application not found")
     record_signal(
         repo,
-        Signal(
-            signal_type="rejection",
-            job_id=job_id,
-            payload={"reason": payload.reason, "notes": payload.notes},
-            run_id="api",
-            user_id=settings.user_id,
-        ),
+        Signal(signal_type="rejection", job_id=job_id, payload={"reason": payload.reason, "notes": payload.notes}, run_id="api", user_id=settings.user_id),
     )
-    return row or {"detail": "application not found"}
+    return row

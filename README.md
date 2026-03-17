@@ -1,11 +1,33 @@
 # job-agent-arkode
 
-Documentação completa em [`docs/README.md`](docs/README.md).
+Agente pessoal de IA para descobrir vagas, gerar materiais sob medida, acompanhar candidaturas e operar um cockpit web.
 
-## Versão
-- Evolução atual: `v0.4.0` (reasons taxonomy, exploration 80/20, outcome learning, feed hunter)
+## Stack
+- Backend: FastAPI + SQLModel
+- Automacao: Playwright connectors
+- Frontend: Next.js
+- Persistencia: SQLite por padrao, pronto para PostgreSQL
 
+## Desenvolvimento
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+Copy-Item .env.example .env
+.\.venv\Scripts\python.exe -m uvicorn src.api.main:app --reload --port 8000
+```
 
-## Frontend
-- Painel web em `apps/web` (Next.js).
-- Instruções: `apps/web/README.md`.
+Frontend:
+```powershell
+cd apps/web
+pnpm install
+pnpm dev
+```
+
+## Endpoints principais
+- `GET /dashboard`
+- `GET/PUT /profile`
+- `GET /jobs`
+- `POST /applications/apply`
+- `GET /applications`
+- `POST /email/sync`
+- `GET /mcp/tools`
