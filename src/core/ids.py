@@ -9,6 +9,10 @@ def generate_run_id(prefix: str = "run") -> str:
 
 
 def generate_job_id(source: str, external_id: str, company: str, title: str) -> str:
-    base = f"{source}|{external_id}|{company}|{title}".lower()
+    normalized_external_id = (external_id or "").strip().lower()
+    if normalized_external_id:
+        base = f"{source}|{normalized_external_id}"
+    else:
+        base = f"{source}|{company}|{title}".lower()
     digest = hashlib.sha1(base.encode("utf-8")).hexdigest()[:14]
     return f"job_{digest}"

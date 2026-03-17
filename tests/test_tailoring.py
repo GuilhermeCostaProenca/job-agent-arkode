@@ -10,7 +10,7 @@ from src.domain.tailoring import build_artifacts, select_relevant_bullets
 def build_profile() -> CandidateProfile:
     return CandidateProfile(
         name="Ana",
-        target_role="Júnior",
+        target_role="Junior",
         location="remoto",
         stacks=["Flutter", "Kotlin", "SQL"],
         links={"github": "x"},
@@ -19,7 +19,7 @@ def build_profile() -> CandidateProfile:
         education=["ADS"],
         preferences={"company_type": "produto"},
         bullet_bank={
-            "mobile": ["Implementei fluxo Flutter com melhoria de performance perceptível."],
+            "mobile": ["Implementei fluxo Flutter com melhoria de performance perceptivel."],
             "data": ["Criei dashboard SQL/BI para acompanhamento semanal."],
         },
         learning_plan=["Aprofundar backend"],
@@ -28,21 +28,9 @@ def build_profile() -> CandidateProfile:
 
 def test_tailoring_generates_artifacts(tmp_path: Path) -> None:
     dynamic = tmp_path / "profile_dynamic.json"
-    dynamic.write_text(
-        json.dumps({"top_skills_inferred": ["flutter"], "preferred_locations": ["remote"]}),
-        encoding="utf-8",
-    )
+    dynamic.write_text(json.dumps({"top_skills_inferred": ["flutter"], "preferred_locations": ["remote"]}), encoding="utf-8")
     profile = build_profile()
-    job = JobPosting(
-        external_id="job-1",
-        source="manual",
-        url="https://example.com/job",
-        title="Dev Mobile",
-        company="Acme",
-        location="remoto",
-        description="Requisitos: Flutter e SQL",
-        requirements=["Flutter", "SQL", "Power BI"],
-    )
+    job = JobPosting(external_id="job-1", source="manual", url="https://example.com/job", title="Dev Mobile", company="Acme", location="remoto", description="Requisitos: Flutter e SQL", requirements=["Flutter", "SQL", "Power BI"])
     anchors = extract_job_anchors(job)
     scoring = score_job(job, profile)
 
@@ -56,15 +44,29 @@ def test_tailoring_generates_artifacts(tmp_path: Path) -> None:
 
 def test_select_relevant_bullets_prefers_matching_bank() -> None:
     profile = build_profile()
-    job = JobPosting(
-        external_id="2",
-        source="rss",
-        url="https://example.com/2",
-        title="Mobile",
-        company="x",
-        location="remoto",
-        description="flutter sql",
-    )
+    job = JobPosting(external_id="2", source="rss", url="https://example.com/2", title="Mobile", company="x", location="remoto", description="flutter sql")
     anchors = extract_job_anchors(job)
     bullets = select_relevant_bullets(profile, anchors)
     assert any("Flutter" in bullet or "flutter" in bullet for bullet in bullets)
+
+
+def test_tailoring_sanitizes_artifact_paths_for_url_external_id(tmp_path: Path) -> None:
+    dynamic = tmp_path / "profile_dynamic.json"
+    dynamic.write_text("{}", encoding="utf-8")
+    profile = build_profile()
+    job = JobPosting(
+        external_id="https://remoteok.com/remote-dev-jobs/123",
+        source="rss",
+        url="https://remoteok.com/remote-dev-jobs/123",
+        title="Software Developer",
+        company="Acme",
+        location="remote",
+        description="Requisitos: Python",
+        requirements=["Python"],
+    )
+    anchors = extract_job_anchors(job)
+    scoring = score_job(job, profile)
+    bundle = build_artifacts(job, profile, tmp_path, anchors, scoring, dynamic)
+    assert Path(bundle.resume_path).exists()
+    assert "https:" not in bundle.resume_path
+    assert Path(bundle.project_prompt_path).exists()

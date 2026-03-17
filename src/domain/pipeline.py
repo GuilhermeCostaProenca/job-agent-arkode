@@ -19,21 +19,27 @@ from src.domain.scoring import recommendation_from_score, score_job
 from src.domain.tailoring import build_artifacts
 from src.ingest.dedupe import dedupe_jobs
 from src.ingest.normalize import normalize_jobs
+from src.ingest.sources.linkedin import fetch_linkedin_jobs
 from src.ingest.sources.manual_url import fetch_manual_url
 from src.ingest.sources.rss import fetch_rss_jobs
+from src.services.job_fit_service import augment_job_fit_with_llm
+from src.services.profile_brain_service import get_effective_profile
 from src.tracker.db import get_session
 from src.tracker.repo import TrackerRepository
 
 
 def collect_jobs(
-    sources: list[str], limit: int, rss_urls: list[str], manual_urls: list[str]
+    sources: list[str], limit: int, rss_urls: list[str], manual_urls: list[str], profile: CandidateProfile
 ) -> list[JobPosting]:
+    settings = get_settings()
     jobs: list[JobPosting] = []
     if "rss" in sources:
         jobs.extend(fetch_rss_jobs(rss_urls, limit=limit))
     if "manual" in sources:
         for url in manual_urls[:limit]:
             jobs.append(fetch_manual_url(url))
+    if "linkedin" in sources:
+        jobs.extend(fetch_linkedin_jobs(settings, profile, limit=limit))
     return dedupe_jobs(normalize_jobs(jobs))[:limit]
 
 
@@ -81,16 +87,25 @@ def run_pipeline(
 ) -> str:
     settings = get_settings()
     run_id = generate_run_id(settings.run_id_prefix)
-    jobs = collect_jobs(sources, limit, rss_urls, manual_urls)
+    jobs = collect_jobs(sources, limit, rss_urls, manual_urls, profile)
 
     with get_session() as session:
         repo = TrackerRepository(session)
         repo.create_run(run_id, user_id=settings.user_id)
+        effective_profile = get_effective_profile(repo, settings.profile_path, settings.user_id)
         learned_weights = _process_new_signals(repo, user_id=settings.user_id)
         for job in jobs:
             anchors = extract_job_anchors(job)
             job.anchors = anchors
-            result = score_job(job, profile)
+            result = score_job(job, effective_profile)
+            fit = augment_job_fit_with_llm(settings, effective_profile, job, result)
+            result.fit_summary = fit.fit_summary
+            result.recommendation = fit.recommendation
+            result.llm_adjustment = fit.llm_adjustment
+            result.reasons = fit.reasons
+            result.gaps = fit.gaps
+            result.top_matched_terms = fit.top_matched_terms
+            result.score = max(0, min(100, result.score + fit.llm_adjustment))
 
             base_breakdown = result.breakdown.model_dump()
             adjusted_score, adjustments = apply_preferences_to_score(
@@ -103,10 +118,11 @@ def run_pipeline(
             result.score = adjusted_score
 
             job.score = adjusted_score
-            job.score_reasons = result.reasons + [f"preferences: {adjustments}"]
+            job.score_reasons = result.reasons + [f"llm_adjustment: {fit.llm_adjustment}", f"preferences: {adjustments}"]
             job.score_breakdown = result.breakdown
 
-            db_job_id = generate_job_id(job.source, job.external_id, job.company, job.title)
+            existing_job = repo.get_job_by_external(job.source, job.external_id, user_id=settings.user_id)
+            db_job_id = existing_job.id if existing_job is not None else generate_job_id(job.source, job.external_id, job.company, job.title)
             merged_breakdown = {**base_breakdown, "preference_adjustments": adjustments}
             repo.upsert_job(
                 id=db_job_id,
@@ -123,11 +139,11 @@ def run_pipeline(
                 score_reasons="\n".join(job.score_reasons),
                 anchors_json=anchors.model_dump_json(),
                 score_breakdown_json=json.dumps(merged_breakdown, ensure_ascii=False),
-                recommendation=recommendation_from_score(result.score),
+                recommendation=result.recommendation,
             )
             bundle = build_artifacts(
                 job,
-                profile,
+                effective_profile,
                 artifacts_dir or settings.artifacts_dir,
                 anchors,
                 result,
@@ -198,7 +214,7 @@ def run_pipeline(
                     job_id=db_job_id,
                     status="prepared",
                     follow_up_date=follow_up,
-                    recommendation=recommendation_from_score(result.score),
+                    recommendation=result.recommendation,
                 ),
                 link=job.url,
                 user_id=settings.user_id,
